@@ -11,14 +11,14 @@
 
 #define BUFSZ 1024
 
-void usage(int argc, char **argv) //Verifica a conexão do servidor
+void usage(int argc, char **argv) // Verifica a conexão do servidor
 {
 	printf("usage: %s <server IP> <server port>\n", argv[0]);
 	printf("example: %s 127.0.0.1 51511\n", argv[0]);
 	exit(EXIT_FAILURE);
 }
 
-int startConnection(int argc, char **argv, int s) //Implementa a conexão com o servidor socket() e connect()
+int startConnection(int argc, char **argv, int s) // Implementa a conexão com o servidor socket() e connect()
 {
 	if (argc < 3)
 	{
@@ -51,94 +51,50 @@ int main(int argc, char **argv)
 	GameMessage Game;
 	MessageType Message;
 	char buf[BUFSZ];
-	unsigned total = 0;
 	size_t count = 0;
-	int buffer = 0;
-	int winning = 0;
+
+	char attacks[5][16];
+
+	strcpy(attacks[0],"Nuclear Attack");
+	strcpy(attacks[1],"Intercept Attack");
+	strcpy(attacks[2],"Cyber Attack");
+	strcpy(attacks[3],"Drone Strike");
+	strcpy(attacks[4],"Bio Attack");
 
 	s = startConnection(argc, argv, s); // Faz socket(), bind(), listen() e accept()
 
-
-	recv(s, &Game, sizeof(Game), 0); // Recebe 
-
-	if(Game.type == 0){
-		printf("Escolha a sua jogada:\n\n0 - Nuclear Attack\n1 - Intercept Attack\n2 - Cyber Attack\n3 - Drone Strike\n4 - Bio Attack\n");
-		scanf("%d",&Game.client_action);
-		count = send(s, &Game, sizeof(Game), 0); // Envia o movimento escolhido
-				if (count != sizeof(Game))
-				{
-					logexit("send");
-				}
-
-		recv(s, &Game, sizeof(Game), 0); // Recebe os movimentos possíveis do jogador
-		printf("%s\n",Game.message);
-
-	}
-
-
-
 	while (1)
 	{
+		recv(s, &Game, sizeof(Game), 0);
 
-		recv(s, &Jogo, sizeof(Jogo), 0); // Recebe os movimentos possíveis do jogador
+		if (Game.type == MSG_REQUEST){
+			printf("Escolha a sua jogada:\n\n0 - Nuclear Attack\n1 - Intercept Attack\n2 - Cyber Attack\n3 - Drone Strike\n4 - Bio Attack\n");
+			scanf("%d", &Game.client_action);
+			count = send(s, &Game, sizeof(Game), 0); // Envia o movimento escolhido
+			if (count != sizeof(Game))
+			{
+				logexit("send");
+			}
+		}
 
+		if(Game.type == MSG_RESULT){
+			printf("Você escolheu: %s\n Servidor escolheu: %s\n Resultado: %s\n", attacks[Game.client_action],attacks[Game.server_action],Game.message);
+		}
 
-		while (1)
+		if (Game.type == MSG_PLAY_AGAIN_REQUEST)
 		{
-		
-			if (Jogo.type == 6)
+			printf("Deseja jogar novamente?\n1 - Sim\n0 - Não\n");
+			scanf("%d", &Game.client_action);
+			count = send(s, &Game, sizeof(Game), 0); // Envia o movimento escolhido
+			if (count != sizeof(Game))
 			{
-				count = send(s, &Jogo, sizeof(Jogo), 0); // Envia o movimento escolhido
-				if (count != sizeof(Jogo))
-				{
-					logexit("send");
-				}
-				winning = 0;
-				break;
+				logexit("send");
 			}
+		}
 
-			if (Jogo.type == 1 && winning == 0)
-			{
-				if (Jogo.moves[0] == buffer || Jogo.moves[1] == buffer || Jogo.moves[2] == buffer || Jogo.moves[3] == buffer)
-				{
-
-					for (int y = 0; y < 100; y++)
-					{
-						Jogo.moves[y] = 0;
-					}
-
-					Jogo.moves[0] = buffer;
-					count = send(s, &Jogo, sizeof(Jogo), 0); // Envia o movimento escolhido
-					if (count != sizeof(Jogo))
-					{
-						logexit("send");
-					}
-					recv(s, &Jogo, sizeof(Jogo), 0); // Recebe os movimentos possíveis do jogador
-					
-				}
-				else
-					printf("error: you cannot go this way\n");
-			}
-
-			if (Jogo.type == 2 && winning == 0)
-			{
-				count = send(s, &Jogo, sizeof(Jogo), 0); // Envia o movimento escolhido
-				if (count != sizeof(Jogo))
-				{
-					logexit("send");
-				}
-
-				recv(s, &Jogo, sizeof(Jogo), 0); // Recebe os movimentos possíveis do jogador
-				
-			}
-			if (Jogo.type == 5 && winning == 0)
-			{
-				winning = 1;
-				Jogo.type = 0;
-				printf("You escaped!\n");
-				
-				printf("\n");
-			}
+		if (Game.type == MSG_ERROR)
+		{
+			printf("Por favor, selecione um valor de 0 a 4.\n");
 		}
 	}
 }

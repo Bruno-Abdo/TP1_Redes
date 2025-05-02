@@ -77,7 +77,7 @@ void GetResult(GameMessage *Jogo){
 
     if(Jogo->client_action == 0){
         if(Jogo->client_action == Jogo->server_action){
-            Jogo->result = 2;
+            Jogo->result = -1;
             strcpy(Jogo->message,"Empate!");
         }else if(Jogo->server_action == 2 || Jogo->server_action == 3){
             Jogo->result = 1;
@@ -86,56 +86,67 @@ void GetResult(GameMessage *Jogo){
         } else{
             Jogo->result = 0;
             strcpy(Jogo->message,"Derrota!");
+            Jogo->server_wins++;
         }
 
     } else if(Jogo->client_action == 1){
         if(Jogo->client_action == Jogo->server_action){
-            Jogo->result = 2;
+            Jogo->result = -1;
             strcpy(Jogo->message,"Empate!");
         }else if(Jogo->server_action == 0 || Jogo->server_action == 4){
             Jogo->result = 1;
             strcpy(Jogo->message,"Vitoria!");
+            Jogo->client_wins++;
         } else{
             Jogo->result = 0;
             strcpy(Jogo->message,"Derrota!");
+            Jogo->server_wins++;
         }
 
     } else if(Jogo->client_action == 2){
         if(Jogo->client_action == Jogo->server_action){
-            Jogo->result = 2;
+            Jogo->result = -1;
             strcpy(Jogo->message,"Empate!");
         }else if(Jogo->server_action == 1 || Jogo->server_action == 3){
             Jogo->result = 1;
             strcpy(Jogo->message,"Vitoria!");
+            Jogo->client_wins++;
         } else{
             Jogo->result = 0;
             strcpy(Jogo->message,"Derrota!");
+            Jogo->server_wins++;
         }
 
     } else if(Jogo->client_action == 3){
         if(Jogo->client_action == Jogo->server_action){
-            Jogo->result = 2;
+            Jogo->result = -1;
             strcpy(Jogo->message,"Empate!");
         }else if(Jogo->server_action == 1 || Jogo->server_action == 4){
             Jogo->result = 1;
             strcpy(Jogo->message,"Vitoria!");
+            Jogo->client_wins++;
         } else{
             Jogo->result = 0;
             strcpy(Jogo->message,"Derrota!");
+            Jogo->server_wins++;
         }
 
     } else if(Jogo->client_action == 4){
         if(Jogo->client_action == Jogo->server_action){
-            Jogo->result = 2;
+            Jogo->result = -1;
             strcpy(Jogo->message,"Empate!");
         }else if(Jogo->server_action == 2 || Jogo->server_action == 0){
             Jogo->result = 1;
             strcpy(Jogo->message,"Vitoria!");
+            Jogo->client_wins++;
         } else{
             Jogo->result = 0;
             strcpy(Jogo->message,"Derrota!");
+            Jogo->server_wins++;
         }
     }
+
+    printf("Placar atualizado: Cliente %d x %d Servidor\n",Jogo->client_wins,Jogo->server_wins);
 }
 
 int main(int argc, char **argv){
@@ -152,36 +163,85 @@ int main(int argc, char **argv){
     Game.client_wins = 0;
     Game.server_wins = 0;
 
-    Message = MSG_REQUEST;
-    Game.type = Message;
+    while(1){
+    while(1){
+        while(1){
+            Game.type = MSG_REQUEST;
 
-    printf("Apresentando as opções para o cliente.\n");
+            printf("Apresentando as opções para o cliente.\n");
 
-    count = send(csock, &Game, sizeof(Game), 0); // Envia comando star ao servidor
-	if (count != sizeof(Game))
-	{
-		logexit("send");
-	}
+            count = send(csock, &Game, sizeof(Game), 0);
+            if (count != sizeof(Game))
+            {
+                logexit("send");
+            }
 
+            count = recv(csock,&Game,sizeof(Game),0); //Recebe Mensagens
+            if(count != sizeof(Game)){
+                logexit("recv");
+            }
+
+            printf("Cliente escolheu %d.\n",Game.client_action);
+
+            if(Game.client_action >= 0 && Game.client_action <=4){
+                break;
+            } else{
+                printf("Erro: opção inválida de jogada.");
+                Game.type = MSG_ERROR;
+
+                count = send(csock, &Game, sizeof(Game), 0);
+                if (count != sizeof(Game))
+                {
+                    logexit("send");
+                }
+            }
+        }
+        Game.server_action = Random();
+        printf("Servidor escolheu aleatoriamente %d.\n",Game.server_action);
+
+        Game.result = 5;
+        GetResult(&Game);
+
+        Game.type = MSG_RESULT;
+
+        count = send(csock, &Game, sizeof(Game), 0); 
+        if (count != sizeof(Game))
+        {
+            logexit("send");
+        }
+
+        if(Game.result != -1){
+            break;
+        }
+    }
+
+    Game.type = MSG_PLAY_AGAIN_REQUEST;
+    count = send(csock, &Game, sizeof(Game), 0); 
+        if (count != sizeof(Game))
+        {
+            logexit("send");
+        }
     count = recv(csock,&Game,sizeof(Game),0); //Recebe Mensagens
     if(count != sizeof(Game)){
         logexit("recv");
     }
+    printf("quase acabou\n");
 
-    printf("Cliente escolheu %d.\n",Game.client_action);
+    if(Game.client_action == 0){
+        printf("acabou\n");
+        break;
+        
+    }
 
-    Game.server_action = Random();
-    printf("Servidor escolheu aleatoriamente %d.\n",Game.server_action);
+}
+Game.type = MSG_END;
+count = send(csock, &Game, sizeof(Game), 0); 
+    if (count != sizeof(Game))
+    {
+        logexit("send");
+    }
 
-    Game.result = 5;
-
-    GetResult(&Game);
-
-    count = send(csock, &Game, sizeof(Game), 0); 
-	if (count != sizeof(Game))
-	{
-		logexit("send");
-	}
-
+    printf("Cliente não deseja jogar novamente.\nEnviando placar final.\nEncerrando conexão.\n");
     exit(EXIT_SUCCESS);
+    printf("Cliente desconectado.\n");
 }
