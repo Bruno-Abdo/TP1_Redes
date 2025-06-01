@@ -94,7 +94,7 @@ int main(int argc, char **argv)
 
 		if (Game.type == MSG_ERROR)
 		{
-			printf("Por favor, selecione um valor de 0 a 4.\n");
+			printf("%s\n",Game.message);
 		}
 	}
 }

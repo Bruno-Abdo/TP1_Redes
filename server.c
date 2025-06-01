@@ -164,30 +164,56 @@ int main(int argc, char **argv){
     Game.server_wins = 0;
 
     while(1){
-    while(1){
-        while(1){
-            Game.type = MSG_REQUEST;
-
+        if(Game.type == MSG_REQUEST){ //Para solicitar que o cliente envie uma jogada
             printf("Apresentando as opções para o cliente.\n");
 
             count = send(csock, &Game, sizeof(Game), 0);
-            if (count != sizeof(Game))
-            {
+            if (count != sizeof(Game)){
                 logexit("send");
             }
+        }
 
-            count = recv(csock,&Game,sizeof(Game),0); //Recebe Mensagens
-            if(count != sizeof(Game)){
-                logexit("recv");
-            }
-
+        if(Game.type == MSG_RESPONSE){ //Para enviar a jogada escolhida ao servidor
             printf("Cliente escolheu %d.\n",Game.client_action);
 
-            if(Game.client_action >= 0 && Game.client_action <=4){
-                break;
-            } else{
+            if(Game.client_action < 0 || Game.client_action > 4){
                 printf("Erro: opção inválida de jogada.");
-                Game.type = MSG_ERROR;
+                
+                Game.type = MSG_ERROR;  //Quando a jogada do cliente for inválida
+                strcpy(Game.message, "Por favor, selecione um valor de 0 a 4.");
+                count = send(csock, &Game, sizeof(Game), 0);
+                if (count != sizeof(Game)){
+                    logexit("send");
+                }
+                Game.type = MSG_REQUEST;
+                
+            }else{
+                Game.result = 5;
+                GetResult(&Game);
+                Game.type = MSG_RESULT;
+                count = send(csock, &Game, sizeof(Game), 0);
+                if (count != sizeof(Game)){
+                    logexit("send");
+                }
+            }
+        }
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
                 count = send(csock, &Game, sizeof(Game), 0);
                 if (count != sizeof(Game))
@@ -213,27 +239,35 @@ int main(int argc, char **argv){
         if(Game.result != -1){
             break;
         }
+
+        
+            count = recv(csock,&Game,sizeof(Game),0); //Recebe Mensagens
+            if(count != sizeof(Game)){
+                logexit("recv");
+            }
     }
 
-    Game.type = MSG_PLAY_AGAIN_REQUEST;
-    count = send(csock, &Game, sizeof(Game), 0); 
-        if (count != sizeof(Game))
-        {
-            logexit("send");
+    while(1){
+        Game.type = MSG_PLAY_AGAIN_REQUEST;
+        count = send(csock, &Game, sizeof(Game), 0); 
+            if (count != sizeof(Game))
+            {
+                logexit("send");
+            }
+        count = recv(csock,&Game,sizeof(Game),0); //Recebe Mensagens
+        if(count != sizeof(Game)){
+            logexit("recv");
         }
-    count = recv(csock,&Game,sizeof(Game),0); //Recebe Mensagens
-    if(count != sizeof(Game)){
-        logexit("recv");
+
+        if(Game.client_action == 0 || Game.client_action == 1){
+            
+        }
     }
-    printf("quase acabou\n");
 
     if(Game.client_action == 0){
-        printf("acabou\n");
-        break;
-        
+        break;  
     }
 
-}
 Game.type = MSG_END;
 count = send(csock, &Game, sizeof(Game), 0); 
     if (count != sizeof(Game))
