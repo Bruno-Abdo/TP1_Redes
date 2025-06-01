@@ -173,11 +173,14 @@ int main(int argc, char **argv){
             if (count != sizeof(Game)){
                 logexit("send");
             }
+
+            count = recv(csock,&Game,sizeof(Game),0); //Recebe Mensagens
+            if(count != sizeof(Game)){
+                logexit("recv");
+            }
         }
 
         if(Game.type == MSG_RESPONSE){ //Para enviar a jogada escolhida ao servidor
-            printf("Cliente escolheu %d.\n",Game.client_action);
-
             if(Game.client_action < 0 || Game.client_action > 4){
                 printf("Erro: opção inválida de jogada.");
                 
@@ -188,96 +191,79 @@ int main(int argc, char **argv){
                     logexit("send");
                 }
                 Game.type = MSG_REQUEST;
-                
             }else{
-                Game.result = 5;
+                printf("Cliente escolheu %d.\n",Game.client_action);
+                //Game.result = 5;
+                Game.server_action = Random();
+                printf("Servidor escolheu aleatoriamente %d.\n",Game.server_action);
+
                 GetResult(&Game);
+                printf("Placar atualizado: Cliente %d x %d Servidor\n", Game.client_wins, Game.server_wins);
+
                 Game.type = MSG_RESULT;
                 count = send(csock, &Game, sizeof(Game), 0);
                 if (count != sizeof(Game)){
                     logexit("send");
                 }
+                Game.type = MSG_PLAY_AGAIN_REQUEST;
+            }            
+        }
+
+        if(Game.type == MSG_PLAY_AGAIN_REQUEST){
+            printf("Perguntando se o cliente deseja jogar novamente\n");
+            count = send(csock, &Game, sizeof(Game), 0);
+            if (count != sizeof(Game)){
+                logexit("send");
             }
-        }
-            
 
+            printf("Aqui agora\n");
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                count = send(csock, &Game, sizeof(Game), 0);
-                if (count != sizeof(Game))
-                {
-                    logexit("send");
-                }
-            }
-        }
-        Game.server_action = Random();
-        printf("Servidor escolheu aleatoriamente %d.\n",Game.server_action);
-
-        Game.result = 5;
-        GetResult(&Game);
-
-        Game.type = MSG_RESULT;
-
-        count = send(csock, &Game, sizeof(Game), 0); 
-        if (count != sizeof(Game))
-        {
-            logexit("send");
-        }
-
-        if(Game.result != -1){
-            break;
-        }
-
-        
             count = recv(csock,&Game,sizeof(Game),0); //Recebe Mensagens
             if(count != sizeof(Game)){
                 logexit("recv");
             }
-    }
 
-    while(1){
-        Game.type = MSG_PLAY_AGAIN_REQUEST;
-        count = send(csock, &Game, sizeof(Game), 0); 
-            if (count != sizeof(Game))
-            {
+            printf("Recebeu\n");
+
+            if(Game.client_action != 0 && Game.client_action != 1){
+                printf("Erro: opção inválida de jogada.");
+                
+                Game.type = MSG_ERROR;  //Quando a jogada do cliente for inválida
+                strcpy(Game.message, "Por favor, digite 1 para jogar novamente ou 0 para encerrar.");
+                count = send(csock, &Game, sizeof(Game), 0);
+                if (count != sizeof(Game)){
+                    logexit("send");
+                }
+                Game.type = MSG_PLAY_AGAIN_REQUEST;
+            }
+        }
+
+        if(Game.type == MSG_PLAY_AGAIN_RESPONSE){
+
+            if(Game.client_action == 0){
+                Game.type = MSG_END;
+                printf("Cliente não deseja jogar novamente.");
+            }else{
+                Game.type == MSG_REQUEST;
+                printf("Chegou aqui");
+            } 
+        }
+
+        if(Game.type == MSG_END){
+            printf("Enviando placar final.");
+
+            snprintf(Game.message, MSG_SIZE, "Fim de Jogo\nPlacar Final: Voce : %d x %d Servidor\nObrigado por jogar!", Game.client_wins, Game.server_wins);
+
+            count = send(csock, &Game, sizeof(Game), 0);
+            if (count != sizeof(Game)){
                 logexit("send");
             }
-        count = recv(csock,&Game,sizeof(Game),0); //Recebe Mensagens
-        if(count != sizeof(Game)){
-            logexit("recv");
+
+            printf("Encerrando conexão.\n");
+            exit(EXIT_SUCCESS);
+            printf("Cliente desconectado.\n");
+
+            break;
         }
-
-        if(Game.client_action == 0 || Game.client_action == 1){
-            
-        }
     }
-
-    if(Game.client_action == 0){
-        break;  
-    }
-
-Game.type = MSG_END;
-count = send(csock, &Game, sizeof(Game), 0); 
-    if (count != sizeof(Game))
-    {
-        logexit("send");
-    }
-
-    printf("Cliente não deseja jogar novamente.\nEnviando placar final.\nEncerrando conexão.\n");
-    exit(EXIT_SUCCESS);
-    printf("Cliente desconectado.\n");
 }

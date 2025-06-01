@@ -93,11 +93,13 @@ int main(int argc, char **argv)
 		{
 			printf("Deseja jogar novamente?\n1 - Sim\n0 - Não\n");
 			scanf("%d", &Game.client_action);
+			Game.type = MSG_PLAY_AGAIN_RESPONSE;
 			count = send(s, &Game, sizeof(Game), 0); // Envia o movimento escolhido
 			if (count != sizeof(Game))
 			{
 				logexit("send");
 			}
+
 			recv(s, &Game, sizeof(Game), 0);
 			if(Game.type == MSG_ERROR){
 				printf("%s\n",Game.message);
