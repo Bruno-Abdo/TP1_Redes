@@ -63,22 +63,30 @@ int main(int argc, char **argv)
 
 	s = startConnection(argc, argv, s); // Faz socket(), bind(), listen() e accept()
 
+	recv(s, &Game, sizeof(Game), 0);
+
 	while (1)
 	{
-		recv(s, &Game, sizeof(Game), 0);
 
 		if (Game.type == MSG_REQUEST){
 			printf("Escolha a sua jogada:\n\n0 - Nuclear Attack\n1 - Intercept Attack\n2 - Cyber Attack\n3 - Drone Strike\n4 - Bio Attack\n");
 			scanf("%d", &Game.client_action);
+			Game.type = MSG_RESPONSE;
 			count = send(s, &Game, sizeof(Game), 0); // Envia o movimento escolhido
 			if (count != sizeof(Game))
 			{
 				logexit("send");
 			}
+			recv(s, &Game, sizeof(Game), 0);
+			if(Game.type == MSG_ERROR){
+				printf("%s\n",Game.message);
+				Game.type = MSG_REQUEST;
+			}
 		}
 
 		if(Game.type == MSG_RESULT){
 			printf("Você escolheu: %s\n Servidor escolheu: %s\n Resultado: %s\n", attacks[Game.client_action],attacks[Game.server_action],Game.message);
+			recv(s, &Game, sizeof(Game), 0);
 		}
 
 		if (Game.type == MSG_PLAY_AGAIN_REQUEST)
@@ -90,11 +98,16 @@ int main(int argc, char **argv)
 			{
 				logexit("send");
 			}
+			recv(s, &Game, sizeof(Game), 0);
+			if(Game.type == MSG_ERROR){
+				printf("%s\n",Game.message);
+				Game.type = MSG_PLAY_AGAIN_REQUEST;
+			}
 		}
 
-		if (Game.type == MSG_ERROR)
-		{
-			printf("%s\n",Game.message);
+		if(Game.type == MSG_END){
+			printf("%s", Game.message);
+			break;
 		}
 	}
 }

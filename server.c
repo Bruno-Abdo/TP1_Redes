@@ -163,6 +163,8 @@ int main(int argc, char **argv){
     Game.client_wins = 0;
     Game.server_wins = 0;
 
+    Game.type = MSG_REQUEST;
+
     while(1){
         if(Game.type == MSG_REQUEST){ //Para solicitar que o cliente envie uma jogada
             printf("Apresentando as opções para o cliente.\n");
