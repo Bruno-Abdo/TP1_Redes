@@ -41,6 +41,8 @@ int startConnection(int argc, char **argv, int s) // Implementa a conexão com o
 	{
 		logexit("connect");
 	}
+	printf("Conectado ao servidor.\n");
+
 	return s;
 }
 
@@ -53,7 +55,7 @@ int main(int argc, char **argv)
 	char buf[BUFSZ];
 	size_t count = 0;
 
-	char attacks[5][16];
+	char attacks[5][17];
 
 	strcpy(attacks[0],"Nuclear Attack");
 	strcpy(attacks[1],"Intercept Attack");
@@ -65,9 +67,7 @@ int main(int argc, char **argv)
 
 	recv(s, &Game, sizeof(Game), 0);
 
-	while (1)
-	{
-
+	while (1){
 		if (Game.type == MSG_REQUEST){
 			printf("Escolha a sua jogada:\n\n0 - Nuclear Attack\n1 - Intercept Attack\n2 - Cyber Attack\n3 - Drone Strike\n4 - Bio Attack\n");
 			scanf("%d", &Game.client_action);
@@ -77,10 +77,11 @@ int main(int argc, char **argv)
 			{
 				logexit("send");
 			}
+		
 			recv(s, &Game, sizeof(Game), 0);
 			if(Game.type == MSG_ERROR){
 				printf("%s\n",Game.message);
-				Game.type = MSG_REQUEST;
+				recv(s, &Game, sizeof(Game), 0);
 			}
 		}
 
@@ -102,8 +103,8 @@ int main(int argc, char **argv)
 
 			recv(s, &Game, sizeof(Game), 0);
 			if(Game.type == MSG_ERROR){
-				printf("%s\n",Game.message);
-				Game.type = MSG_PLAY_AGAIN_REQUEST;
+				printf("%s",Game.message);
+				recv(s, &Game, sizeof(Game), 0);
 			}
 		}
 
